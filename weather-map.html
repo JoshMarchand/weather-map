@@ -1,1 +1,261 @@
-test
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href='https://api.mapbox.com/mapbox-gl-js/v1.8.0/mapbox-gl.css' rel='stylesheet'/>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v1.8.1/mapbox-gl.css" rel="stylesheet"/>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css"
+          integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+    <!--    google fonts-->
+    <link href="https://fonts.googleapis.com/css?family=Merriweather&display=swap" rel="stylesheet">
+
+    <title>Weather Map</title>
+
+    <style>
+        #map {
+            width: 100%;
+            height: 50vh;
+        }
+        .head {
+            font-family: 'Merriweather', serif;
+        }
+    </style>
+</head>
+<body>
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.4.2/mapbox-gl-geocoder.min.js"></script>
+
+<!--weather-->
+<div class="container">
+    <!--    header-->
+    <div style="height: 150px; background-color: #f6f6f6;">
+        <h1 class="head text-center"></h1>
+    </div>
+
+    <!--    cards-->
+    <div class="row">
+        <div class="weather1 col-4 d-flex justify-content-center mt-2"></div>
+        <div class="weather2 col-4 d-flex justify-content-center mt-2"></div>
+        <div class="weather3 col-4 d-flex justify-content-center mt-2"></div>
+    </div>
+
+    <!--lat/lng bar-->
+    <div class="input-group w-100 mt-2 mb-2 ml-auto mr-auto">
+        <div class="input-group-prepend">
+            <button type="button" id="latlong" class="btn btn-secondary">Update</button>
+        </div>
+        <input type="text" aria-label="Latitude" id="lat1" class="form-control" placeholder="Latitude">
+        <input type="text" aria-label="Longitude" id="long1" class="form-control" placeholder="Longitude">
+    </div>
+
+    <!--    map-->
+    <div id='map' class="m-auto position-relative"></div>
+</div>
+<!--weather end-->
+
+<link
+        rel="stylesheet"
+        href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.4.2/mapbox-gl-geocoder.css"
+        type="text/css"
+/>
+<!-- Promise polyfill script required to use Mapbox GL Geocoder in IE 11 -->
+<script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.auto.min.js"></script>
+<!--<div id="map"></div>-->
+
+<script
+        src="https://code.jquery.com/jquery-3.4.1.min.js"
+        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+        crossorigin="anonymous"></script>
+<script src="js/keys.js"></script>
+<script src='https://api.mapbox.com/mapbox-gl-js/v1.8.0/mapbox-gl.js'></script>
+<script src="js/mapbox-geocoder-utils.js"></script>
+
+<!-- Optional JavaScript -->
+<script>
+    mapboxgl.accessToken = mapboxToken;
+
+    var map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/streets-v11',
+        zoom: 15,
+        center: [-98.4916, 29.4260]
+    });
+
+    geocode("San Antonio, TX 78205", mapboxgl.accessToken).then(function (result) {
+        map.setCenter(result);
+        map.setZoom(5);
+    });
+
+    var markerOptions = {
+        color: '#ff0000',
+        draggable: true
+    };
+
+    var thaiVegan = new mapboxgl.Marker(markerOptions)
+        .setLngLat([-98.4916, 29.4260])
+        .addTo(map);
+
+    // add search box
+    var geocoder =
+        new MapboxGeocoder({
+                accessToken: mapboxgl.accessToken,
+                mapboxgl: mapboxgl,
+                // remove default marker
+                marker: false
+            }
+        );
+    map.addControl(geocoder);
+
+    // search box function
+    geocoder.on('result', function (e) {
+        console.log(thaiVegan);
+        updateWeather(e.result.center["1"], e.result.center["0"]);
+        thaiVegan.setLngLat({
+            lng: e.result.center["0"],
+            lat: e.result.center["1"]
+        });
+    });
+
+    // marker function
+    thaiVegan.on('dragend', function (e) {
+        updateWeather(e.target._lngLat.lat, e.target._lngLat.lng);
+
+    });
+
+    // long/lat search function
+    $('#latlong').click(function () {
+            if ($('#city').val()) {
+                geocode($('#city').val(), mapboxgl.accessToken).then(function (result) {
+                    console.log(result);
+                    map.setCenter(result);
+                    map.setZoom(10);
+                    updateWeather(result[1], result[0]);
+                });
+            } else if (parseFloat($('#lat1').val()) && parseFloat($('#long1').val())) {
+                updateWeather(parseFloat($('#lat1').val()), parseFloat($('#long1').val()))
+            } else {
+            }
+        }
+    );
+
+    // icon array
+    var iconArr = [
+        {
+            condition: 'clear-day',
+            url: 'icon/clear-day.png'
+        },
+        {
+            condition: 'clear-night',
+            url: 'icon/clear-night.png'
+        },
+        {
+            condition: 'rain',
+            url: 'icon/rain.png'
+        },
+        {
+            condition: 'snow',
+            url: 'icon/snow.png'
+        },
+        {
+            condition: 'sleet',
+            url: 'icon/sleet.png'
+        },
+        {
+            condition: 'wind',
+            url: 'icon/wind.png'
+        },
+        {
+            condition: 'fog',
+            url: 'icon/fog.png'
+        },
+        {
+            condition: 'cloudy',
+            url: 'icon/cloudy.png'
+        },
+        {
+            condition: 'partly-cloudy-day',
+            url: 'icon/partly-cloudy-day.png'
+        },
+        {
+            condition: 'partly-cloudy-night',
+            url: 'icon/partly-cloudy-night.png'
+        },
+    ];
+
+    function updateWeather(lat, long) {
+
+        $.ajax("https://cors-anywhere.herokuapp.com/https://api.darksky.net/forecast/" + darkSkyKey + "/" + lat + ',' + long).done(function (data) {
+            console.log(data);
+
+            console.log(data.daily.data[0].precipProbability);
+
+            // select icon
+            function getIcon(num) {
+                var iconUrl;
+                iconArr.forEach(function (element) {
+                    if (element.condition === data.daily.data[num].icon) {
+                        iconUrl = element.url;
+                    }
+                });
+                return iconUrl;
+            }
+
+            //set header
+            reverseGeocode({lng: long, lat: lat}, mapboxgl.accessToken).then(function (results) {
+                $('.head').text(results);
+            });
+
+            // set card 1
+            $('.weather1').html('<div class="card text-center" style="width: 100%;">\n' +
+                '  <div class="card-body">\n' +
+                '    <h1 class="card-text">' + data.daily.data[0].temperatureHigh + '/' + data.daily.data[0].temperatureLow + '</h1>\n' +
+                '  <img src="' + getIcon(0) + '" class="card-img-top mb-2" style="max-width: 50px; max-height: 50px; border-radius: 50%; box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19); color: #c1c1c1" alt="...">\n' +
+                '<p class="card-text"><strong>Clouds: </strong>' + data.daily.data[0].summary + '</p>\n' +
+                '<p class="card-text"><strong>Humidity: </strong>' + data.daily.data[0].humidity + '</p>\n' +
+                '<p class="card-text"><strong>Wind: </strong>' + data.daily.data["0"].windSpeed + '</p>\n' +
+                '<p class="card-text"><strong>Pressure: </strong>' + data.daily.data["0"].pressure + '</p>\n' +
+                '  </div>\n' +
+                '</div>')
+
+            // set card 2
+            $('.weather2').html('<div class="card text-center" style="width: 100%;">\n' +
+                '  <div class="card-body">\n' +
+                '    <h1 class="card-text">' + data.daily.data[1].temperatureHigh + '/' + data.daily.data[1].temperatureLow + '</h1>\n' +
+                '  <img src="' + getIcon(1) + '" class="card-img-top mb-2 bg-light" style="max-width: 50px; max-height: 50px; border-radius: 50%; box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);" alt="...">\n' +
+                '<p class="card-text"><strong>Clouds: </strong>' + data.daily.data[1].summary + '</p>\n' +
+                '<p class="card-text"><strong>Humidity: </strong>' + data.daily.data[1].humidity + '</p>\n' +
+                '<p class="card-text"><strong>Wind: </strong>' + data.daily.data["1"].windSpeed + '</p>\n' +
+                '<p class="card-text"><strong>Pressure: </strong>' + data.daily.data["1"].pressure + '</p>\n' +
+                '  </div>\n' +
+                '</div>')
+
+            // set card 3
+            $('.weather3').html('<div class="card text-center" style="width: 100%;">\n' +
+                '  <div class="card-body">\n' +
+                '    <h1 class="card-text">' + data.daily.data[2].temperatureHigh + '/' + data.daily.data[2].temperatureLow + '</h1>\n' +
+                '  <img src="' + getIcon(2) + '" class="card-img-top mb-2" style="max-width: 50px; max-height: 50px; border-radius: 50%; box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);" alt="...">\n' +
+                '<p class="card-text"><strong>Clouds: </strong>' + data.daily.data[2].summary + '</p>\n' +
+                '<p class="card-text"><strong>Humidity: </strong>' + data.daily.data[2].humidity + '</p>\n' +
+                '<p class="card-text"><strong>Wind: </strong>' + data.daily.data["2"].windSpeed + '</p>\n' +
+                '<p class="card-text"><strong>Pressure: </strong>' + data.daily.data["2"].pressure + '</p>\n' +
+                '  </div>\n' +
+                '</div>')
+        })
+    }
+
+    // initial location
+    updateWeather(29.4260, -98.4916);
+
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js"
+        integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut"
+        crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js"
+        integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k"
+        crossorigin="anonymous"></script>
+</body>
+</html>
